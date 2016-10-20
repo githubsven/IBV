@@ -67,12 +67,16 @@ namespace INFOIBV
                 for (int y = 0; y < InputImage.Size.Height; y++)
                 {
                     Color pixelColor = Image[x, y];                         // Get the pixel color at coordinate (x,y)
-                    int rgb = (pixelColor.R + pixelColor.B + pixelColor.G) / 3;
-                    Color updatedColor = (rgb < 196 || rgb > 208) ? Color.FromArgb(0, 0, 0) : Color.FromArgb(255, 255, 255); // Negative image
-                    Image[x, y] = updatedColor;                             // Set the new pixel color at coordinate (x,y)
+                    int grey = (pixelColor.R + pixelColor.B + pixelColor.G) / 3;
+                    Color updatedColor = (grey < 196 || grey > 208) ? Color.FromArgb(0, 0, 0) : Color.FromArgb(255, 255, 255); // Threshold Image
+                    Image[x, y] = updatedColor;
+                    //Image[x, y] = (pixelColor.B < 222) ? Color.Black : Color.White;                             // Set the new pixel color at coordinate (x,y)
                     progressBar.PerformStep();                              // Increment progress bar
                 }
             }
+
+            Image = Erode(Image);
+            
             //==========================================================================================
 
             // Copy array to output Bitmap
@@ -95,5 +99,39 @@ namespace INFOIBV
                 OutputImage.Save(saveImageDialog.FileName);                 // Save the output image
         }
 
+        /* Our own functions */
+        private Color[,] Erode(Color[,] Image)
+        {
+            Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
+
+            for (int x = 1; x < Image.GetLength(0) - 1; x++)         //Ignore the sides of the image
+            {
+                for (int y = 1; y < Image.GetLength(1) - 1; y++)
+                {
+                    Color[] POI = new Color[] { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1],
+                                                Image[x - 1, y], Image[x, y], Image[x + 1, y],
+                                                Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]}; // Pixels of Interest
+                    updatedImage[x, y] = newColor(POI, Color.FromArgb(255, 255, 255, 255));
+                }
+            }
+
+            return updatedImage;
+        }
+
+        private Color[,] Close(ref Color[,] Image)
+        {
+            return null;
+        }
+
+        private Color newColor(Color[] POI, Color output)
+        {
+            for(int i = 0; i < POI.Length; i++)
+            {
+                if (POI[i] == output)
+                    return output;
+            }
+
+            return Color.FromArgb(output.R - 255, output.G - 255, output.B - 255);
+        }
     }
 }

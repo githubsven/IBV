@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Drawing;
 
 namespace INFOIBV
 {
@@ -47,6 +48,20 @@ namespace INFOIBV
             for (int x = 0; x < values.GetLength(0); x++)
                 for (int y = 0; y < values.GetLength(1); y++)
                     values[x, y] *= number;
+        }
+
+        public Color[,] Apply(Color[,] Image)
+        {
+            Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
+            for(int x = 1; x < Image.GetLength(0) - 1; x++)         //Ignore the sides of the image
+            {
+                for(int y = 1; y < Image.GetLength(1) - 1; y++)
+                {
+                    //TODO
+                }
+            }
+
+            return null;
         }
     }
 }
