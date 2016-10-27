@@ -68,7 +68,7 @@ namespace INFOIBV
                 for (int y = 0; y < InputImage.Size.Height; y++)
                 {
                     Color pixelColor = Image[x, y];                         // Get the pixel color at coordinate (x,y)
-                    int grey = (pixelColor.R + pixelColor.B + pixelColor.G) / 3;
+                    int grey = (pixelColor.R + pixelColor.B + pixelColor.G) / 3;        //turn into grey pixel
                     //float Hue = pixelColor.GetHue();
                     Color updatedColor = (grey < threshold) ? Color.FromArgb(255, 255, 255) : Color.FromArgb(0, 0, 0); // Threshold Image
                     Image[x, y] = updatedColor;
@@ -107,8 +107,11 @@ namespace INFOIBV
             return null;
         }
 
+        // ========== THRESHOLDING ==========
+        //finds the threshold by looking at minimum between the 2 highest peaks
         private int FindThreshold(Color[,] Image)
         {
+            //fills the array with the amount of pixels per grey value (histogram)
             int[] frequencies = new int[256];
             for (int x = 0; x < Image.GetLength(0); x++)
             {
@@ -118,16 +121,30 @@ namespace INFOIBV
                 }
             }
 
+            return findPeaks(frequencies);
+        }
+
+            //searches for all maxima (peaks)
+            private int findPeaks(int[] freqs)
+        {
             List<Tuple<int, int>> peaks = new List<Tuple<int, int>>();
-            for (int i = 1; i < frequencies.Length; i++)
+            for (int i = 1; i < freqs.Length; i++)
             {
-                if (frequencies[i - 1] < frequencies[i] && frequencies[i + 1] < frequencies[i])
+                //checks if its a top and if it is in the range of the array
+                if (freqs[i - 1] < freqs[i] && (i + 1) < 256 && freqs[i + 1] < freqs[i])
                 {
-                    peaks.Add(new Tuple<int, int>(i, frequencies[i]));
-                    i += 10;        //To skip peaks too near to eachother
+                    peaks.Add(new Tuple<int, int>(i, freqs[i]));
+                    i += 35;        //To skip peaks too near to eachother
                 }
             }
 
+            return minimumThreshold(peaks, freqs);
+        }
+
+            //finds the right threshold   
+            private int minimumThreshold(List<Tuple<int,int>> peaks, int[] freqs)
+        {
+            //finds the 2 highest peaks
             Tuple<int, int> firstTop = new Tuple<int, int>(0, 0), secondTop = new Tuple<int, int>(0, 0);
             for (int i = 0; i < peaks.Count; i++)
             {
@@ -140,18 +157,20 @@ namespace INFOIBV
                     secondTop = peaks[i];
             }
 
+            //finds the minimum between the 2 highest peaks
             Tuple<int, int> minimum = firstTop;
             int lowestIndex = Math.Min(firstTop.Item1, secondTop.Item1);
             int highestIndex = Math.Max(firstTop.Item1, secondTop.Item1);
             for(int i = lowestIndex; i < highestIndex; i++)
             {
-                if (frequencies[i] < minimum.Item2)
-                    minimum = new Tuple<int, int>(i, frequencies[i]);
+                if (freqs[i] < minimum.Item2)
+                    minimum = new Tuple<int, int>(i, freqs[i]);
             }
 
             return minimum.Item1;
         }
 
+        // ========== ERODE, CLOSE ===========
         private Color[,] Erode(Color[,] Image)
         {
             Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
