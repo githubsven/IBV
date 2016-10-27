@@ -68,15 +68,18 @@ namespace INFOIBV
                 {
                     Color pixelColor = Image[x, y];                         // Get the pixel color at coordinate (x,y)
                     int grey = (pixelColor.R + pixelColor.B + pixelColor.G) / 3;
-                    Color updatedColor = (grey < 196 || grey > 208) ? Color.FromArgb(0, 0, 0) : Color.FromArgb(255, 255, 255); // Threshold Image
-                    Image[x, y] = updatedColor;
+                    //Color updatedColor = (grey < 196 || grey > 208) ? Color.FromArgb(0, 0, 0) : Color.FromArgb(255, 255, 255); // Threshold Image
+                    // Image[x, y] = updatedColor;
                     //Image[x, y] = (pixelColor.B < 222) ? Color.Black : Color.White;                             // Set the new pixel color at coordinate (x,y)
+                    Image[x, y] = Color.FromArgb(grey, grey, grey);
                     progressBar.PerformStep();                              // Increment progress bar
                 }
             }
 
-            Image = Erode(Image);
-            
+            //erosion                                                                                                                                                                                   
+            //Image = erodeOrFill(Image, Color.FromArgb(255, 255, 255, 255));
+            Image = gaussianFunction(gaussianFunction(gaussianFunction(Image)));
+
             //==========================================================================================
 
             // Copy array to output Bitmap
@@ -100,7 +103,9 @@ namespace INFOIBV
         }
 
         /* Our own functions */
-        private Color[,] Erode(Color[,] Image)
+        //====== EROSION, DILATION, CLOSING, OPENING ======
+        //Function for erosion and filling
+        private Color[,] erodeOrFill(Color[,] Image, Color erodeOrFill)
         {
             Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
 
@@ -111,7 +116,7 @@ namespace INFOIBV
                     Color[] POI = new Color[] { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1],
                                                 Image[x - 1, y], Image[x, y], Image[x + 1, y],
                                                 Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]}; // Pixels of Interest
-                    updatedImage[x, y] = newColor(POI, Color.FromArgb(255, 255, 255, 255));
+                    updatedImage[x, y] = erodeOrFillColor(POI, erodeOrFill);
                 }
             }
 
@@ -123,7 +128,9 @@ namespace INFOIBV
             return null;
         }
 
-        private Color newColor(Color[] POI, Color output)
+        //function to return the same color if it is somewhere in the array. Otherwise the opposite is returned.
+        // with white input it performs erosion, with black it performs filling
+        private Color erodeOrFillColor(Color[] POI, Color output)
         {
             for(int i = 0; i < POI.Length; i++)
             {
@@ -132,6 +139,41 @@ namespace INFOIBV
             }
 
             return Color.FromArgb(output.R - 255, output.G - 255, output.B - 255);
+        }
+
+        //====== GAUSSIAN =====
+        //The main function for a gaussian blur
+        private Color[,] gaussianFunction(Color[,] Image)
+        {
+            Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
+
+            for (int x = 1; x < Image.GetLength(0) - 1; x++)         //Ignore the sides of the image
+            {
+                for (int y = 1; y < Image.GetLength(1) - 1; y++)
+                {
+                    Color[] POI = new Color[] { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1],
+                                                Image[x - 1, y], Image[x, y], Image[x + 1, y],
+                                                Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]}; // Pixels of Interest
+                    updatedImage[x, y] = gaussianColor(POI);
+                }
+            }
+
+            return updatedImage;
+        }
+
+        //the supportfunction for the gaussian blur
+        private Color gaussianColor(Color[] POI)
+        {
+            int newColor = 0;
+            for(int i=0; i < POI.Length; i++)
+            {
+                newColor += POI[i].R;
+            }
+
+            newColor = Math.Min(255, newColor/9);
+
+
+            return Color.FromArgb(newColor, newColor, newColor);
         }
     }
 }
