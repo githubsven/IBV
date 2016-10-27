@@ -16,11 +16,11 @@ namespace INFOIBV
 
         /// <summary>
         /// Creates a 3x3 Kernel.
-        /// The default Kernel is the Identity Kernel.
+        /// The default Kernel is filled with 1.
         /// </summary>
-        public Kernel(float UpperLeft = 0, float UpperMiddle = 0, float UpperRight = 0,
-                        float CenterLeft = 0, float CenterMiddle = 1, float CenterRight = 0,
-                        float BottomLeft = 0, float BottomMiddle = 0, float BottomRight = 0)
+        public Kernel(float UpperLeft = 1, float UpperMiddle = 1, float UpperRight = 1,
+                        float CenterLeft = 1, float CenterMiddle = 1, float CenterRight = 1,
+                        float BottomLeft = 1, float BottomMiddle = 1, float BottomRight = 1)
         {
             values = new float[3, 3];
 
@@ -53,15 +53,31 @@ namespace INFOIBV
         public Color[,] Apply(Color[,] Image)
         {
             Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
+
             for(int x = 1; x < Image.GetLength(0) - 1; x++)         //Ignore the sides of the image
             {
                 for(int y = 1; y < Image.GetLength(1) - 1; y++)
                 {
-                    //TODO
+                    Color[,] POI = new Color[,] { { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1] },
+                                                { Image[x - 1, y], Image[x, y], Image[x + 1, y] },
+                                                { Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]} };
+
+                    int red = 0, green = 0, blue = 0;
+                    for(int i = 0; i < POI.GetLength(0); i++)
+                    {
+                        for (int j = 0; j < POI.GetLength(1); j++)
+                        {
+                            red += (int)(values[0, 0] * POI[i, j].R);
+                            green += (int)(values[0, 0] * POI[i, j].G);
+                            blue += (int)(values[0, 0] * POI[i, j].B);
+                        }
+                    }
+
+                    updatedImage[x, y] = Color.FromArgb(Math.Min(255, red), Math.Min(255, green), Math.Min(255, blue));
                 }
             }
 
-            return null;
+            return updatedImage;
         }
     }
 }

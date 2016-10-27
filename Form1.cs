@@ -68,14 +68,16 @@ namespace INFOIBV
                 {
                     Color pixelColor = Image[x, y];                         // Get the pixel color at coordinate (x,y)
                     int grey = (pixelColor.R + pixelColor.B + pixelColor.G) / 3;
-                    Color updatedColor = (grey < 196 || grey > 208) ? Color.FromArgb(0, 0, 0) : Color.FromArgb(255, 255, 255); // Threshold Image
+                    Color updatedColor = (grey < 176 || grey > 228) ? Color.FromArgb(0, 0, 0) : Color.FromArgb(255, 255, 255); // Threshold Image
                     Image[x, y] = updatedColor;
                     //Image[x, y] = (pixelColor.B < 222) ? Color.Black : Color.White;                             // Set the new pixel color at coordinate (x,y)
                     progressBar.PerformStep();                              // Increment progress bar
                 }
             }
 
-            Image = Close(Image);
+            Image = Erode(Image);
+            for (int i = 0; i < 5; i++)
+                Image = Close(Image);
             
             //==========================================================================================
 
@@ -100,6 +102,11 @@ namespace INFOIBV
         }
 
         /* Our own functions */
+        private Color[,] DetectObjects(Color[,] Image)
+        {
+            return null;
+        }
+
         private Color[,] Erode(Color[,] Image)
         {
             Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
