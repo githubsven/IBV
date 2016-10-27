@@ -75,7 +75,7 @@ namespace INFOIBV
                 }
             }
 
-            Image = Erode(Image);
+            Image = Close(Image);
             
             //==========================================================================================
 
@@ -118,9 +118,22 @@ namespace INFOIBV
             return updatedImage;
         }
 
-        private Color[,] Close(ref Color[,] Image)
+        private Color[,] Close(Color[,] Image)
         {
-            return null;
+            Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
+
+            for (int x = 1; x < Image.GetLength(0) - 1; x++)         //Ignore the sides of the image
+            {
+                for (int y = 1; y < Image.GetLength(1) - 1; y++)
+                {
+                    Color[] POI = new Color[] { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1],
+                                                Image[x - 1, y], Image[x, y], Image[x + 1, y],
+                                                Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]}; // Pixels of Interest
+                    updatedImage[x, y] = newColor(POI, Color.FromArgb(255, 0, 0, 0));
+                }
+            }
+
+            return updatedImage;
         }
 
         private Color newColor(Color[] POI, Color output)
@@ -131,7 +144,7 @@ namespace INFOIBV
                     return output;
             }
 
-            return Color.FromArgb(output.R - 255, output.G - 255, output.B - 255);
+            return Color.FromArgb(255 - output.R, 255 - output.G, 255 - output.B);
         }
     }
 }
