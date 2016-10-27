@@ -62,22 +62,20 @@ namespace INFOIBV
             //==========================================================================================
             // TODO: include here your own code
             // example: create a negative image
+            int threshold = FindThreshold(Image);
             for (int x = 0; x < InputImage.Size.Width; x++)
             {
                 for (int y = 0; y < InputImage.Size.Height; y++)
                 {
                     Color pixelColor = Image[x, y];                         // Get the pixel color at coordinate (x,y)
                     int grey = (pixelColor.R + pixelColor.B + pixelColor.G) / 3;
-                    Color updatedColor = (grey < 176 || grey > 228) ? Color.FromArgb(0, 0, 0) : Color.FromArgb(255, 255, 255); // Threshold Image
+                    //float Hue = pixelColor.GetHue();
+                    Color updatedColor = (grey < threshold) ? Color.FromArgb(255, 255, 255) : Color.FromArgb(0, 0, 0); // Threshold Image
                     Image[x, y] = updatedColor;
                     //Image[x, y] = (pixelColor.B < 222) ? Color.Black : Color.White;                             // Set the new pixel color at coordinate (x,y)
                     progressBar.PerformStep();                              // Increment progress bar
                 }
             }
-
-            Image = Erode(Image);
-            for (int i = 0; i < 5; i++)
-                Image = Close(Image);
             
             //==========================================================================================
 
@@ -101,10 +99,57 @@ namespace INFOIBV
                 OutputImage.Save(saveImageDialog.FileName);                 // Save the output image
         }
 
-        /* Our own functions */
+        /* 
+            Our own functions 
+        */
         private Color[,] DetectObjects(Color[,] Image)
         {
             return null;
+        }
+
+        private int FindThreshold(Color[,] Image)
+        {
+            int[] frequencies = new int[256];
+            for (int x = 0; x < Image.GetLength(0); x++)
+            {
+                for (int y = 0; y < Image.GetLength(1); y++)
+                {
+                    frequencies[(Image[x, y].R + Image[x, y].B + Image[x, y].G) / 3]++;
+                }
+            }
+
+            List<Tuple<int, int>> peaks = new List<Tuple<int, int>>();
+            for (int i = 1; i < frequencies.Length; i++)
+            {
+                if (frequencies[i - 1] < frequencies[i] && frequencies[i + 1] < frequencies[i])
+                {
+                    peaks.Add(new Tuple<int, int>(i, frequencies[i]));
+                    i += 10;        //To skip peaks too near to eachother
+                }
+            }
+
+            Tuple<int, int> firstTop = new Tuple<int, int>(0, 0), secondTop = new Tuple<int, int>(0, 0);
+            for (int i = 0; i < peaks.Count; i++)
+            {
+                if (peaks[i].Item2 > firstTop.Item2)
+                {
+                    secondTop = firstTop;
+                    firstTop = peaks[i];
+                }
+                else if (peaks[i].Item2 > secondTop.Item2)
+                    secondTop = peaks[i];
+            }
+
+            Tuple<int, int> minimum = firstTop;
+            int lowestIndex = Math.Min(firstTop.Item1, secondTop.Item1);
+            int highestIndex = Math.Max(firstTop.Item1, secondTop.Item1);
+            for(int i = lowestIndex; i < highestIndex; i++)
+            {
+                if (frequencies[i] < minimum.Item2)
+                    minimum = new Tuple<int, int>(i, frequencies[i]);
+            }
+
+            return minimum.Item1;
         }
 
         private Color[,] Erode(Color[,] Image)
