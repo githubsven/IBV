@@ -70,12 +70,15 @@ namespace INFOIBV
                     Color pixelColor = Image[x, y];                         // Get the pixel color at coordinate (x,y)
                     int grey = (pixelColor.R + pixelColor.B + pixelColor.G) / 3;        //turn into grey pixel
                     //float Hue = pixelColor.GetHue();
-                    Color updatedColor = (grey < threshold) ? Color.FromArgb(255, 255, 255) : Color.FromArgb(0, 0, 0); // Threshold Image
+                    //Color updatedColor = (grey < threshold) ? Color.FromArgb(255, 255, 255) : Color.FromArgb(0, 0, 0); // Threshold Image
+                    Color updatedColor = Color.FromArgb(grey, grey, grey);
                     Image[x, y] = updatedColor;
                     //Image[x, y] = (pixelColor.B < 222) ? Color.Black : Color.White;                             // Set the new pixel color at coordinate (x,y)
                     progressBar.PerformStep();                              // Increment progress bar
                 }
             }
+
+            Image = Prewitt(Image);
             
             //==========================================================================================
 
@@ -105,6 +108,17 @@ namespace INFOIBV
         private Color[,] DetectObjects(Color[,] Image)
         {
             return null;
+        }
+
+        private Color[,] Prewitt (Color[,] Image)
+        {
+            Kernel prewittHorizontal = new Kernel(-1, 0, 1, -1, 0, 1, -1, 0, 1);
+            Color[,] Gx = prewittHorizontal.Apply(Image);
+
+            Kernel prewittVertical = new Kernel(-1, -1, -1, 0, 0, 0, 1, 1, 1);
+            Color[,] Gy = prewittVertical.Apply(Image);
+
+            return Gy;
         }
 
         // ========== THRESHOLDING ==========

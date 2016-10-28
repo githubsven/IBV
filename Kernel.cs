@@ -67,13 +67,13 @@ namespace INFOIBV
                     {
                         for (int j = 0; j < POI.GetLength(1); j++)
                         {
-                            red += (int)(values[0, 0] * POI[i, j].R);
-                            green += (int)(values[0, 0] * POI[i, j].G);
-                            blue += (int)(values[0, 0] * POI[i, j].B);
+                            red += (int)(values[i, j] * POI[i, j].R);
+                            green += (int)(values[i, j] * POI[i, j].G);
+                            blue += (int)(values[i, j] * POI[i, j].B);
                         }
                     }
 
-                    updatedImage[x, y] = Color.FromArgb(Math.Min(255, red), Math.Min(255, green), Math.Min(255, blue));
+                    updatedImage[x, y] = Color.FromArgb(Math.Min(255, Math.Abs(red)), Math.Min(255, Math.Abs(green)), Math.Min(255, Math.Abs(blue)));
                 }
             }
 
