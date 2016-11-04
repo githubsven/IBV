@@ -14,6 +14,8 @@ namespace INFOIBV
     {
         private Bitmap InputImage;
         private Bitmap OutputImage;
+        private Color BackgroundColor = Color.Black;
+        private Color FocusColor = Color.White;
 
         public INFOIBV()
         {
@@ -43,12 +45,12 @@ namespace INFOIBV
             OutputImage = new Bitmap(InputImage.Size.Width, InputImage.Size.Height); // Create new output image
             Color[,] Image = new Color[InputImage.Size.Width, InputImage.Size.Height]; // Create array to speed-up operations (Bitmap functions are very slow)
 
-            // Setup progress bar
+            /* Setup progress bar
             progressBar.Visible = true;
             progressBar.Minimum = 1;
             progressBar.Maximum = InputImage.Size.Width * InputImage.Size.Height;
             progressBar.Value = 1;
-            progressBar.Step = 1;
+            progressBar.Step = 1;*/
 
             // Copy input Bitmap to array            
             for (int x = 0; x < InputImage.Size.Width; x++)
@@ -61,24 +63,21 @@ namespace INFOIBV
 
             //==========================================================================================
             // TODO: include here your own code
-            // example: create a negative image
-            int threshold = FindThreshold(Image);
-            for (int x = 0; x < InputImage.Size.Width; x++)
-            {
-                for (int y = 0; y < InputImage.Size.Height; y++)
-                {
-                    Color pixelColor = Image[x, y];                         // Get the pixel color at coordinate (x,y)
-                    int grey = (pixelColor.R + pixelColor.B + pixelColor.G) / 3;        //turn into grey pixel
-                    //float Hue = pixelColor.GetHue();
-                    //Color updatedColor = (grey < threshold) ? Color.FromArgb(255, 255, 255) : Color.FromArgb(0, 0, 0); // Threshold Image
-                    Color updatedColor = Color.FromArgb(grey, grey, grey);
-                    Image[x, y] = updatedColor;
-                    //Image[x, y] = (pixelColor.B < 222) ? Color.Black : Color.White;                             // Set the new pixel color at coordinate (x,y)
-                    progressBar.PerformStep();                              // Increment progress bar
-                }
-            }
 
+            /*Maaike Techniek
             Image = Prewitt(Image);
+            Image = Threshold(Image, true);
+            //Image = Erode(Image);
+            for (int i = 0; i < 1; i++)
+                Image = Dilate(Image);
+            //Image = AverageBlur(Image);    */
+
+            /*Sven Techniek */
+            //Image = Threshold(Image);
+            //for (int i = 0; i < 5; i++)
+            //    Image = Dilate(Image);
+            Image = Prewitt(Image);
+            
             
             //==========================================================================================
 
@@ -92,7 +91,7 @@ namespace INFOIBV
             }
             
             pictureBox2.Image = (Image)OutputImage;                         // Display output image
-            progressBar.Visible = false;                                    // Hide progress bar
+            //progressBar.Visible = false;                                    // Hide progress bar
         }
         
         private void saveButton_Click(object sender, EventArgs e)
@@ -102,14 +101,42 @@ namespace INFOIBV
                 OutputImage.Save(saveImageDialog.FileName);                 // Save the output image
         }
 
-        /* 
-            Our own functions 
-        */
+        /* Our own functions */
         private Color[,] DetectObjects(Color[,] Image)
         {
             return null;
         }
 
+        #region Add(, Substract)
+        private Color[,] Add(Color[,] Image1, Color[,] Image2)
+        {
+            if (Image1.GetLength(0) != Image2.GetLength(0) || Image1.GetLength(1) != Image2.GetLength(1))
+                throw new Exception("Make sure both images are of equal size");
+
+            Color[,] result = new Color[Image1.GetLength(0), Image1.GetLength(1)];
+            for(int x = 0; x < Image1.GetLength(0); x++)
+            {
+                for(int y = 0; y < Image1.GetLength(1); y++)
+                {
+                    int color = Math.Min(255, Image1[x, y].R + Image2[x, y].R);
+                    result[x, y] = Color.FromArgb(color, color, color);
+                }
+            }
+
+            return result;
+        }
+        #endregion
+
+        #region Blur
+        private Color[,] AverageBlur(Color[,] Image)
+        {
+            Kernel gaussian = new Kernel();
+            gaussian.Multiply(1.0f / 9.0f);
+            return gaussian.Apply(Image);
+        }
+        #endregion
+
+        #region Edge Detection
         private Color[,] Prewitt (Color[,] Image)
         {
             Kernel prewittHorizontal = new Kernel(-1, 0, 1, -1, 0, 1, -1, 0, 1);
@@ -118,11 +145,44 @@ namespace INFOIBV
             Kernel prewittVertical = new Kernel(-1, -1, -1, 0, 0, 0, 1, 1, 1);
             Color[,] Gy = prewittVertical.Apply(Image);
 
-            return Gy;
+            Color[,] result = Gx;
+            for(int x = 0; x < result.GetLength(0); x++)
+            {
+                for(int y = 0; y < result.GetLength(1); y++)
+                {
+                    int colorIntensity = Math.Max(result[x, y].R, Gy[x, y].R);
+                    result[x, y] = Color.FromArgb(colorIntensity, colorIntensity, colorIntensity);
+                }
+            }
+
+            return result;
+        }
+        #endregion
+
+        #region Threshold
+        //finds the threshold by looking at minimum between the 2 highest peaks
+        private Color[,] Threshold(Color[,] Image, bool inverse = false, int threshold = 0)
+        {
+            Color[,] result = new Color[Image.GetLength(0), Image.GetLength(1)];
+
+            if(threshold == 0)
+                threshold = FindThreshold(Image);
+
+            for(int x = 0; x < Image.GetLength(0); x++)
+            {
+                for(int y = 0; y < Image.GetLength(1); y++)
+                {
+                    Color pixelColor = Image[x, y];
+                    int grey = (pixelColor.R + pixelColor.B + pixelColor.G) / 3;
+                    Color updatedColor = (grey < threshold) ? Color.FromArgb(255, 255, 255) : Color.FromArgb(0, 0, 0);
+                    if (inverse) updatedColor = Color.FromArgb(255 - updatedColor.R, 255 - updatedColor.G, 255 - updatedColor.B);
+                    result[x, y] = updatedColor;
+                }
+            }
+
+            return result;
         }
 
-        // ========== THRESHOLDING ==========
-        //finds the threshold by looking at minimum between the 2 highest peaks
         private int FindThreshold(Color[,] Image)
         {
             //fills the array with the amount of pixels per grey value (histogram)
@@ -148,7 +208,7 @@ namespace INFOIBV
                 if (freqs[i - 1] < freqs[i] && (i + 1) < 256 && freqs[i + 1] < freqs[i])
                 {
                     peaks.Add(new Tuple<int, int>(i, freqs[i]));
-                    i += 35;        //To skip peaks too near to eachother
+                    i += 35;        //To skip peaks too close to eachother
                 }
             }
 
@@ -183,8 +243,9 @@ namespace INFOIBV
 
             return minimum.Item1;
         }
+        #endregion
 
-        // ========== ERODE, CLOSE ===========
+        #region Erode, Dilate
         private Color[,] Erode(Color[,] Image)
         {
             Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
@@ -196,14 +257,14 @@ namespace INFOIBV
                     Color[] POI = new Color[] { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1],
                                                 Image[x - 1, y], Image[x, y], Image[x + 1, y],
                                                 Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]}; // Pixels of Interest
-                    updatedImage[x, y] = newColor(POI, Color.FromArgb(255, 255, 255, 255));
+                    updatedImage[x, y] = newColor(POI, BackgroundColor); // If one of the pixels in POI is the background color, make this pixel the background color as well
                 }
             }
 
             return updatedImage;
         }
 
-        private Color[,] Close(Color[,] Image)
+        private Color[,] Dilate(Color[,] Image)
         {
             Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
 
@@ -214,7 +275,7 @@ namespace INFOIBV
                     Color[] POI = new Color[] { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1],
                                                 Image[x - 1, y], Image[x, y], Image[x + 1, y],
                                                 Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]}; // Pixels of Interest
-                    updatedImage[x, y] = newColor(POI, Color.FromArgb(255, 0, 0, 0));
+                    updatedImage[x, y] = newColor(POI, FocusColor); // If one of the pixels in POI is the foreground color, make this pixel the foreground color as well
                 }
             }
 
@@ -225,11 +286,12 @@ namespace INFOIBV
         {
             for(int i = 0; i < POI.Length; i++)
             {
-                if (POI[i] == output)
+                if (POI[i].ToArgb() == output.ToArgb())
                     return output;
             }
 
-            return Color.FromArgb(255 - output.R, 255 - output.G, 255 - output.B);
+            return Color.FromArgb(255 - output.R, 255 - output.G, 255 - output.B); //If none of the pixels was the same as the output color, return the inverse of the output color
         }
+        #endregion
     }
 }
