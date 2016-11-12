@@ -74,14 +74,25 @@ namespace INFOIBV
             //Image = Prewitt(Image);
 
             Image = MakeGrey(Image);
+            Color[,] secondImage = new Color[Image.GetLength(0),Image.GetLength(1)];
+            secondImage = Image;
+
+            
             //Image = Median(Image);
-            //Image = Prewitt(Image);
+            Image = Prewitt(Image);
+            secondImage = Threshold(secondImage);
             //Image = AverageBlur(Image);
             //Image = BlackTophat(Image);     
-            Image = Threshold(Image,true,20);
-            //Image = Close(Dilate(Dilate(Image)));
+            Image = Add(Image, secondImage);
+            Image = Threshold(Image,true);
+            Image = Close(Dilate(Close(Erode(Image))));
 
+            
+            int[,] Image2 = new int[Image.GetLength(0),Image.GetLength(1)];
+            Image2 = colorToInt(Image);
 
+            Image2 = labeling(Image2);
+            Image = colorLabeling(Image2);
 
             /*Sven Techniek */
             //Image = Threshold(Image);
@@ -129,7 +140,7 @@ namespace INFOIBV
             {
                 for (int y = 0; y < Image1.GetLength(1); y++)
                 {
-                    int color = Math.Min(255, Image1[x, y].R + Image2[x, y].R);
+                    int color = Math.Max(Image1[x, y].R, Image2[x, y].R);
                     result[x, y] = Color.FromArgb(color, color, color);
                 }
             }
@@ -331,22 +342,22 @@ namespace INFOIBV
         {
             Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
 
-            for (int x = 2; x < Image.GetLength(0) - 2; x++)         //Ignore the sides of the image
+            for (int x = 1; x < Image.GetLength(0) - 1; x++)         //Ignore the sides of the image
             {
-                for (int y = 2; y < Image.GetLength(1) - 2; y++)
+                for (int y = 1; y < Image.GetLength(1) - 1; y++)
                 {
                     Color[] POI = new Color[] { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1],
                                                 Image[x - 1, y], Image[x, y], Image[x + 1, y],
                                                 Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]}; // Pixels of Interest
 
-                    Color[] POI2 = new Color[] {Image[x - 1, y - 2], Image[x, y - 2], Image[x + 1, y - 2], Image[x - 2, y - 2], Image[x + 2, y - 2],
+                   /* Color[] POI2 = new Color[] {Image[x - 1, y - 2], Image[x, y - 2], Image[x + 1, y - 2], Image[x - 2, y - 2], Image[x + 2, y - 2],
                                                 Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1], Image[x-2,y-1], Image[x+2,y-1],
                                                 Image[x - 1, y], Image[x, y], Image[x + 1, y], Image[x - 2, y], Image[x + 2, y],
                                                 Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1], Image[x - 2, y + 1], Image[x + 2, y + 1],
                                                 Image[x - 1, y + 2], Image[x, y + 2], Image[x + 1, y + 2], Image[x - 2, y + 2], Image[x + 2, y + 2]
-                                                }; // Pixels of Interest
+                                                }; // Pixels of Interest*/
 
-                    updatedImage[x, y] = newColorErode(POI2); // If one of the pixels in POI is the background color, make this pixel the background color as well
+                    updatedImage[x, y] = newColorErode(POI); // If one of the pixels in POI is the background color, make this pixel the background color as well
                 }
             }
 
@@ -414,6 +425,199 @@ namespace INFOIBV
         private Color[,] Open(Color[,] Image)
         {
             return Dilate(Erode(Image));
+        }
+        #endregion
+
+
+        #region labeling 
+        private int [,] labeling(int [,] Image)
+        {
+            Dictionary<int, List<int>> diffLabels = new Dictionary<int, List <int>> ();
+            int [,] labelImage = new int [Image.GetLength(0), Image.GetLength(1)];
+
+            //set whole labelImage to zero
+            for (int i = 0; i < Image.GetLength(0) - 1; i++)
+            {
+                for (int j = 0; j < Image.GetLength(1) - 1; j++)
+                {
+                    labelImage[i, j] = 0;
+                }
+            }
+
+            int label = 0;
+            List <int> neighbors = new List <int> ();
+
+            for (int y = 0; y < Image.GetLength(1); y++)
+            {
+                for (int x = 0; x < Image.GetLength(0); x++)
+                {
+                    if(Image[x,y] == 255)
+                    {
+                        neighbors.Clear();
+
+                        //find labels of neighbors left, left up, up and right up
+                        if (x > 0 && labelImage[x - 1, y] > 0)
+                            neighbors.Add(labelImage[x - 1, y]);
+                        if (x > 0 && y > 0 && labelImage[x - 1, y - 1] > 0)
+                            neighbors.Add(labelImage[x - 1, y - 1]);
+                        if (y > 0 && labelImage[x, y - 1] > 0)
+                            neighbors.Add(labelImage[x, y - 1]);
+                        if (y > 0 && x < Image.GetLength(0) && labelImage[x + 1, y - 1] > 0)
+                            neighbors.Add(labelImage[x + 1, y - 1]);
+
+                        //if there are no neighbors, give the pixel a new label and add it to the diffTabel
+                        if(neighbors.Count == 0)
+                        {
+                            label++;
+                            List<int> labelList = new List<int>();
+                            labelList.Add(label);
+                            diffLabels.Add(label,labelList);
+                            labelImage[x, y] = label;
+                        }
+
+                        else
+                        {
+                            //take over the lowest label of all the neighbors
+                            labelImage[x,y] = neighbors.Min();
+
+                            //add the current label to the lists of the neighboring labels
+                            foreach (int neighborLabel in neighbors)
+                            {
+                                if (!diffLabels[neighborLabel].Contains(labelImage[x,y]))
+                                    diffLabels[neighborLabel].Add(labelImage[x, y]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            labelImage = secondPass(Image, labelImage, diffLabels);
+           
+            return labelImage;
+        }
+
+        //second round to make sure all adjoining shapes are of the same lowest label
+        private int [,] secondPass(int [,] Image, int [,] labelImage, Dictionary<int,List <int>> diffLabels)
+        {
+            for (int y = 0; y < Image.GetLength(1); y++)
+            {
+                for (int x = 0; x < Image.GetLength(0); x++)
+                {
+                    if (Image[x, y] == 255)
+                        labelImage[x, y] = findLowestLabel(diffLabels, labelImage[x, y]);
+                }
+            }
+
+            return labelImage;
+        }
+
+        //function to look for the adjoining figure with the lowest label
+        private int findLowestLabel (Dictionary<int, List<int>> table,int label)
+        {
+            int newLabel = table[label].Min();
+
+            if (newLabel == table[newLabel].Min())
+                return newLabel;
+
+            else
+                newLabel = findLowestLabel(table, table[newLabel].Min());
+
+            return newLabel;
+        }
+
+        //give all shapes in the image a different grey color
+        private Color[,] colorLabeling(int [,] Image)
+        {
+            Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
+            Dictionary<int, int> greyValues = new Dictionary<int, int>();
+            greyValues = findGreyvalueLabel(Image);
+
+            for (int y = 0; y < Image.GetLength(1); y++)
+            {
+                for (int x = 0; x < Image.GetLength(0); x++)
+                {
+                    if (Image[x, y] != 0)
+                    {
+                        int greyColor = greyValues[Image[x, y]];
+                        updatedImage[x, y] = Color.FromArgb(greyColor,greyColor,greyColor);
+                    }
+                    else
+                        updatedImage[x, y] = Color.FromArgb(0, 0, 0);
+                }
+            }
+
+            return updatedImage;
+        }
+
+        //make a dictionary with the labels and the grey colors that belong to that labels
+        private Dictionary<int, int> findGreyvalueLabel(int [,] Image)
+        {
+            List<int> labels = new List<int>();
+
+            //make a lost of 
+            for (int y = 0; y < Image.GetLength(1); y++)
+            {
+                for (int x = 0; x < Image.GetLength(0); x++)
+                {
+                    if (Image[x,y] != 0 && !labels.Contains(Image[x,y]))
+                        labels.Add(Image[x, y]);
+
+                }
+            }
+
+            //determine steps for the different grey values (the shapes colors start from 55 to make sure they stand out from the background)
+            int grey = 200/labels.Count;
+
+            //fill the dictionary with the value combined with the right grey color
+            Dictionary<int, int> greyValues = new Dictionary<int, int>();
+            int totalGrey = 55 + grey;
+
+            foreach (int label in labels)
+            {
+                greyValues.Add(label, totalGrey);
+                totalGrey += grey;
+            }
+
+            return greyValues;
+        }
+        #endregion
+
+        #region switch between int [,] and color [,]
+        private int[,] colorToInt(Color[,] Image)
+        {
+            int[,] updatedImage = new int[Image.GetLength(0), Image.GetLength(1)];
+
+
+            for (int i = 0; i < Image.GetLength(0) - 1; i++)
+            {
+                for (int j = 0; j < Image.GetLength(1) - 1; j++)
+                {
+                    updatedImage[i, j] = Image[i, j].R;
+                }
+            }
+
+            return updatedImage;
+        }
+
+
+
+        private Color [,] intToColor(int [,] Image)
+        {
+            Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
+
+            for (int y = 0; y < Image.GetLength(1); y++)
+            {
+                for (int x = 0; x < Image.GetLength(0); x++)
+                {
+                    if (Image[x, y] == 255)
+                        updatedImage[x, y] = Color.FromArgb(255, 255, 255);
+                    else
+                        updatedImage[x, y] = Color.FromArgb(0, 0, 0);
+
+                }
+            }
+
+            return updatedImage;
         }
         #endregion
     }
