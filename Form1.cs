@@ -297,10 +297,11 @@ namespace INFOIBV
         private int findPeaks(int[] freqs)
         {
             List<Tuple<int, int>> peaks = new List<Tuple<int, int>>();
-            for (int i = 1; i < freqs.Length; i++)
+            for (int i = 2; i < freqs.Length - 2; i++)
             {
                 //checks if its a top and if it is in the range of the array
-                if (freqs[i - 1] < freqs[i] && (i + 1) < 256 && freqs[i + 1] < freqs[i])
+                if (freqs[i - 1] < freqs[i] && (i + 1) < 256 && freqs[i + 1] < freqs[i] && 
+                    freqs[i - 2] < freqs[i - 1] && freqs[i + 2] < freqs[i + 1])
                 {
                     peaks.Add(new Tuple<int, int>(i, freqs[i]));
                     i += 35;        //To skip peaks too close to eachother
