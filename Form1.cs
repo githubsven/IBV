@@ -64,31 +64,22 @@ namespace INFOIBV
             //==========================================================================================
             // TODO: include here your own code
 
-            /*Maaike Techniek
-            Image = Prewitt(Image);
-            Image = Threshold(Image, true);
-            //Image = Erode(Image);
-            for (int i = 0; i < 1; i++)
-                Image = Dilate(Image);
-            //Image = AverageBlur(Image);    */
-            //Image = Prewitt(Image);
-
-            Image = MakeGrey(Image);
             Color[,] secondImage = new Color[Image.GetLength(0),Image.GetLength(1)];
             secondImage = Image;
 
-            
             //Image = Median(Image);
             Image = Prewitt(Image);
             secondImage = Threshold(secondImage);
             //Image = AverageBlur(Image);
             //Image = BlackTophat(Image);     
-            Image = Add(Image, secondImage);
-            Image = Threshold(Image,true);
-            Image = Close(Dilate(Close(Erode(Image))));
 
-            
-            int[,] Image2 = new int[Image.GetLength(0),Image.GetLength(1)];
+            Image = MakeGrey(Image);
+            Image = Threshold(Add(Prewitt(Image), Threshold(Image)), true);
+            Image = Close(Dilate(Close(Erode(Image))));
+            //Image = Threshold(Image, true);
+            //Image = UltimateErosion(Image);
+
+            int[,] Image2 = new int[Image.GetLength(0), Image.GetLength(1)];
             Image2 = colorToInt(Image);
 
             Image2 = labeling(Image2);
@@ -129,7 +120,7 @@ namespace INFOIBV
             return null;
         }
 
-        #region Add(, Substract)
+        #region Add, Substract
         private Color[,] Add(Color[,] Image1, Color[,] Image2)
         {
             if (Image1.GetLength(0) != Image2.GetLength(0) || Image1.GetLength(1) != Image2.GetLength(1))
@@ -220,7 +211,7 @@ namespace INFOIBV
 
         #endregion
 
-            #region Edge Detection
+        #region Edge Detection
         private Color[,] Prewitt(Color[,] Image)
         {
             Kernel prewittHorizontal = new Kernel(-1, 0, 1, -1, 0, 1, -1, 0, 1);
@@ -338,6 +329,39 @@ namespace INFOIBV
         #endregion
 
         #region Erode, Dilate
+        private Color[,] UltimateErosion(Color[,] Image)
+        {
+            bool allBlack = false;
+            Color[,] original = Image;
+            Color[,] opening = Open(original);
+            List<Color[,]> residues = new List<Color[,]>();
+            while (!allBlack)
+            {
+                residues.Add(Substract(original, opening));
+
+                allBlack = true;
+                for(int x = 0; x < opening.GetLength(0) && allBlack; x++)
+                {
+                    for (int y = 0; y < opening.GetLength(1) && allBlack; y++)
+                    {
+                        if (opening[x, y].ToArgb() == Color.White.ToArgb())
+                            allBlack = false;
+                    }
+                }
+
+                original = Erode(original);
+                opening = Open(original);
+            }
+
+            Color[,] result = new Color[Image.GetLength(0), Image.GetLength(1)];
+            foreach(Color[,] residue in residues)
+            {
+                result = Add(result, residue);
+            }
+
+            return result;
+        }
+
         private Color[,] Erode(Color[,] Image)
         {
             Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
@@ -368,22 +392,22 @@ namespace INFOIBV
         {
             Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
 
-            for (int x = 2; x < Image.GetLength(0) - 2; x++)         //Ignore the sides of the image
+            for (int x = 1; x < Image.GetLength(0) - 1; x++)         //Ignore the sides of the image
             {
-                for (int y = 2; y < Image.GetLength(1) - 2; y++)
+                for (int y = 1; y < Image.GetLength(1) - 1; y++)
                 {
                     Color[] POI = new Color[] { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1],
                                                 Image[x - 1, y], Image[x, y], Image[x + 1, y],
                                                 Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]}; // Pixels of Interest
 
-                    Color[] POI2 = new Color[] {Image[x - 1, y - 2], Image[x, y - 2], Image[x + 1, y - 2], Image[x - 2, y - 2], Image[x + 2, y - 2],
+                    /*Color[] POI2 = new Color[] {Image[x - 1, y - 2], Image[x, y - 2], Image[x + 1, y - 2], Image[x - 2, y - 2], Image[x + 2, y - 2],
                                                 Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1], Image[x-2,y-1], Image[x+2,y-1],
                                                 Image[x - 1, y], Image[x, y], Image[x + 1, y], Image[x - 2, y], Image[x + 2, y],
                                                 Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1], Image[x - 2, y + 1], Image[x + 2, y + 1],
                                                 Image[x - 1, y + 2], Image[x, y + 2], Image[x + 1, y + 2], Image[x - 2, y + 2], Image[x + 2, y + 2]
-                                                }; // Pixels of Interest
+                                                }; // Pixels of Interest*/
 
-                    updatedImage[x, y] = newColorDilate(POI2); // If one of the pixels in POI is the foreground color, make this pixel the foreground color as well
+                    updatedImage[x, y] = newColorDilate(POI); // If one of the pixels in POI is the foreground color, make this pixel the foreground color as well
                 }
             }
 
