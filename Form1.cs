@@ -64,7 +64,7 @@ namespace INFOIBV
             //==========================================================================================
             // TODO: include here your own code
 
-            /* == combined from Sven and Maaike ===
+            /*// == combined from Sven and Maaike ===
             Color[,] secondImage = new Color[Image.GetLength(0),Image.GetLength(1)];
             secondImage = Image;
             secondImage = Threshold(secondImage);
@@ -82,19 +82,21 @@ namespace INFOIBV
             Image2 = colorToInt(Image);
 
             Image2 = labeling(Image2);
-            Image = colorLabeling(Image2);*/
+            Image = colorLabeling(Image2);
+            */
 
             Image = MakeGrey(Image);
             Color[,] secondImage = new Color[Image.GetLength(0), Image.GetLength(1)];
             secondImage = Image;
 
             Image = Prewitt(Image);
-            secondImage = Threshold(secondImage);   
+            secondImage = Threshold(secondImage);
+      
             Image = Add(Image, secondImage);
             Image = Threshold(Image, true);
+            Image = Close(Dilate(Close((Erode(Image)))));
 
-            Image = Close(Dilate(Close(Erode(Image))));
-
+            
             int[,] Image2 = new int[Image.GetLength(0), Image.GetLength(1)];
             Image2 = colorToInt(Image);
 
@@ -410,22 +412,22 @@ namespace INFOIBV
         {
             Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
 
-            for (int x = 1; x < Image.GetLength(0) - 1; x++)         //Ignore the sides of the image
+            for (int x = 2; x < Image.GetLength(0) - 2; x++)         //Ignore the sides of the image
             {
-                for (int y = 1; y < Image.GetLength(1) - 1; y++)
+                for (int y = 2; y < Image.GetLength(1) - 2; y++)
                 {
-                    Color[] POI = new Color[] { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1],
+                   /* Color[] POI = new Color[] { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1],
                                                 Image[x - 1, y], Image[x, y], Image[x + 1, y],
-                                                Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]}; // Pixels of Interest
+                                                Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]}; // Pixels of  */
 
-                    /*Color[] POI2 = new Color[] {Image[x - 1, y - 2], Image[x, y - 2], Image[x + 1, y - 2], Image[x - 2, y - 2], Image[x + 2, y - 2],
+                    Color[] POI2 = new Color[] {Image[x - 1, y - 2], Image[x, y - 2], Image[x + 1, y - 2], Image[x - 2, y - 2], Image[x + 2, y - 2],
                                                 Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1], Image[x-2,y-1], Image[x+2,y-1],
                                                 Image[x - 1, y], Image[x, y], Image[x + 1, y], Image[x - 2, y], Image[x + 2, y],
                                                 Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1], Image[x - 2, y + 1], Image[x + 2, y + 1],
                                                 Image[x - 1, y + 2], Image[x, y + 2], Image[x + 1, y + 2], Image[x - 2, y + 2], Image[x + 2, y + 2]
-                                                }; // Pixels of Interest*/
+                                                }; // Pixels of Interest
 
-                    updatedImage[x, y] = newColorDilate(POI); // If one of the pixels in POI is the foreground color, make this pixel the foreground color as well
+                    updatedImage[x, y] = newColorDilate(POI2); // If one of the pixels in POI is the foreground color, make this pixel the foreground color as well
                 }
             }
 
