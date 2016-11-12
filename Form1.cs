@@ -64,18 +64,17 @@ namespace INFOIBV
             //==========================================================================================
             // TODO: include here your own code
 
+            /* == combined from Sven and Maaike ===
             Color[,] secondImage = new Color[Image.GetLength(0),Image.GetLength(1)];
             secondImage = Image;
-
-            //Image = Median(Image);
-            Image = Prewitt(Image);
             secondImage = Threshold(secondImage);
-            //Image = AverageBlur(Image);
-            //Image = BlackTophat(Image);     
+
+            Image = Prewitt(Image);         
 
             Image = MakeGrey(Image);
             Image = Threshold(Add(Prewitt(Image), Threshold(Image)), true);
             Image = Close(Dilate(Close(Erode(Image))));
+            
             //Image = Threshold(Image, true);
             //Image = UltimateErosion(Image);
 
@@ -83,7 +82,26 @@ namespace INFOIBV
             Image2 = colorToInt(Image);
 
             Image2 = labeling(Image2);
+            Image = colorLabeling(Image2);*/
+
+            Image = MakeGrey(Image);
+            Color[,] secondImage = new Color[Image.GetLength(0), Image.GetLength(1)];
+            secondImage = Image;
+
+            Image = Prewitt(Image);
+            secondImage = Threshold(secondImage);   
+            Image = Add(Image, secondImage);
+            Image = Threshold(Image, true);
+
+            Image = Close(Dilate(Close(Erode(Image))));
+
+            int[,] Image2 = new int[Image.GetLength(0), Image.GetLength(1)];
+            Image2 = colorToInt(Image);
+
+            Image2 = labeling(Image2);
             Image = colorLabeling(Image2);
+
+
 
             /*Sven Techniek */
             //Image = Threshold(Image);
