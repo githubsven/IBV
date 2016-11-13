@@ -63,61 +63,24 @@ namespace INFOIBV
 
             //==========================================================================================
             // TODO: include here your own code
-
-            /*// == combined from Sven and Maaike oud ===
-            Color[,] secondImage = new Color[Image.GetLength(0),Image.GetLength(1)];
-            secondImage = Image;
-            secondImage = Threshold(secondImage);
-
-            Image = Prewitt(Image);         
-
             Image = MakeGrey(Image);
-            Image = Threshold(Add(Prewitt(Image), Threshold(Image)), true);
-            Image = Close(Dilate(Close(Erode(Image))));
-            
-            //Image = Threshold(Image, true);
-            //Image = UltimateErosion(Image);
-
-            int[,] Image2 = new int[Image.GetLength(0), Image.GetLength(1)];
-            Image2 = colorToInt(Image);
-
-            Image2 = labeling(Image2);
-            Image = colorLabeling(Image2);
-            */
-
-            //maaike's volgorde 13-11 2:44 uur
-            Image = MakeGrey(Image);
-            Color[,] secondImage = new Color[Image.GetLength(0), Image.GetLength(1)];
-            secondImage = Image;
+            Color[,] secondImage = Image;
 
             Image = Prewitt(Image);
             secondImage = Threshold(secondImage);
       
-            Image = Add(Image, secondImage);
+            Image = Max(Image, secondImage);
             Image = Threshold(Image, true);
             Image = Close(Dilate(Close((Erode(Image)))));
 
-            
+            int[,] intImage = colorToInt(Image);
 
-            int[,] Image2 = new int[Image.GetLength(0), Image.GetLength(1)];
-            Image2 = colorToInt(Image);
-
-            Image2 = labeling(Image2);
-            Image2 = removeBorderShapes(Image2);
-            Image2 = removeAfterElongation(Image2);
-            Image = colorLabeling(Image2);
+            intImage = labeling(intImage);
+            intImage = removeBorderShapes(intImage);
+            intImage = removeAfterElongation(intImage);
+            Image = colorLabeling(intImage);
 
             Image = Close(Image);
-            //===== mogelijk nog een close met grotere kernel + elongation/rectangularity
-
-
-            /*Sven Techniek */
-            //Image = Threshold(Image);
-            //for (int i = 0; i < 5; i++)
-            //    Image = Dilate(Image);
-            //Image = Prewitt(Image);
-
-
             //==========================================================================================
 
             // Copy array to output Bitmap
@@ -130,7 +93,7 @@ namespace INFOIBV
             }
 
             pictureBox2.Image = (Image)OutputImage;                         // Display output image
-            //progressBar.Visible = false;                                    // Hide progress bar
+            //progressBar.Visible = false;                                  // Hide progress bar
         }
 
         private void saveButton_Click(object sender, EventArgs e)
@@ -146,8 +109,8 @@ namespace INFOIBV
             return null;
         }
 
-        #region Add, Substract
-        private Color[,] Add(Color[,] Image1, Color[,] Image2)
+        #region Max, Substract
+        private Color[,] Max(Color[,] Image1, Color[,] Image2)
         {
             if (Image1.GetLength(0) != Image2.GetLength(0) || Image1.GetLength(1) != Image2.GetLength(1))
                 throw new Exception("Make sure both images are of equal size");
@@ -185,13 +148,6 @@ namespace INFOIBV
         #endregion
 
         #region Blur
-        private Color[,] AverageBlur(Color[,] Image)
-        {
-            Kernel gaussian = new Kernel();
-            gaussian.Multiply(1.0f / 9.0f);
-            return gaussian.Apply(Image);
-        }
-
         private Color[,] MakeGrey(Color[,] Image)
         {
             for (int x = 0; x < Image.GetLength(0); x++)
@@ -205,36 +161,6 @@ namespace INFOIBV
 
             return Image;
         }
-        #endregion
-
-        #region Basic kernels
-        private Color[,] Median(Color[,] Image)
-        {
-            Color[,] updatedImage = new Color[Image.GetLength(0),Image.GetLength(1)];
-
-            for (int x = 1; x < Image.GetLength(0)-1; x++)
-            {
-                for (int y = 1; y < Image.GetLength(1)-1; y++)
-                {
-                    int [] POI = new int[] { Image[x - 1, y - 1].R, Image[x, y - 1].R, Image[x + 1, y - 1].R,
-                                                Image[x - 1, y].R, Image[x, y].R, Image[x + 1, y].R,
-                                                Image[x - 1, y + 1].R, Image[x, y + 1].R, Image[x + 1, y + 1].R}; // Pixels of Interest
-
-                    updatedImage[x, y] = findMedian(POI);
-                }
-            }
-            return updatedImage;
-        }
-
-        private Color findMedian(int [] colors)
-        {
-            Array.Sort(colors);
-            int index = colors.Length / 2 + 1;
-
-            int returnColor = colors[index];
-            return Color.FromArgb(returnColor,returnColor,returnColor);
-        }
-
         #endregion
 
         #region Edge Detection
@@ -345,50 +271,9 @@ namespace INFOIBV
 
             return minimum.Item1;
         }
-
-        private Color[,] BlackTophat(Color[,] image)
-        {
-            Color[,] closingImage = new Color[image.GetLength(0), image.GetLength(1)];
-            closingImage = Close(image);
-
-            return Substract(closingImage, image);
-        }
         #endregion
 
         #region Erode, Dilate
-        private Color[,] UltimateErosion(Color[,] Image)
-        {
-            bool allBlack = false;
-            Color[,] original = Image;
-            Color[,] opening = Open(original);
-            List<Color[,]> residues = new List<Color[,]>();
-            while (!allBlack)
-            {
-                residues.Add(Substract(original, opening));
-
-                allBlack = true;
-                for(int x = 0; x < opening.GetLength(0) && allBlack; x++)
-                {
-                    for (int y = 0; y < opening.GetLength(1) && allBlack; y++)
-                    {
-                        if (opening[x, y].ToArgb() == Color.White.ToArgb())
-                            allBlack = false;
-                    }
-                }
-
-                original = Erode(original);
-                opening = Open(original);
-            }
-
-            Color[,] result = new Color[Image.GetLength(0), Image.GetLength(1)];
-            foreach(Color[,] residue in residues)
-            {
-                result = Add(result, residue);
-            }
-
-            return result;
-        }
-
         private Color[,] Erode(Color[,] Image)
         {
             Color[,] updatedImage = new Color[Image.GetLength(0), Image.GetLength(1)];
@@ -400,13 +285,6 @@ namespace INFOIBV
                     Color[] POI = new Color[] { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1],
                                                 Image[x - 1, y], Image[x, y], Image[x + 1, y],
                                                 Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]}; // Pixels of Interest
-
-                   /* Color[] POI2 = new Color[] {Image[x - 1, y - 2], Image[x, y - 2], Image[x + 1, y - 2], Image[x - 2, y - 2], Image[x + 2, y - 2],
-                                                Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1], Image[x-2,y-1], Image[x+2,y-1],
-                                                Image[x - 1, y], Image[x, y], Image[x + 1, y], Image[x - 2, y], Image[x + 2, y],
-                                                Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1], Image[x - 2, y + 1], Image[x + 2, y + 1],
-                                                Image[x - 1, y + 2], Image[x, y + 2], Image[x + 1, y + 2], Image[x - 2, y + 2], Image[x + 2, y + 2]
-                                                }; // Pixels of Interest*/
 
                     updatedImage[x, y] = newColorErode(POI); // If one of the pixels in POI is the background color, make this pixel the background color as well
                 }
@@ -423,18 +301,14 @@ namespace INFOIBV
             {
                 for (int y = 2; y < Image.GetLength(1) - 2; y++)
                 {
-                   /* Color[] POI = new Color[] { Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1],
-                                                Image[x - 1, y], Image[x, y], Image[x + 1, y],
-                                                Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1]}; // Pixels of  */
-
-                    Color[] POI2 = new Color[] {Image[x - 1, y - 2], Image[x, y - 2], Image[x + 1, y - 2], Image[x - 2, y - 2], Image[x + 2, y - 2],
+                    Color[] POI = new Color[] {Image[x - 1, y - 2], Image[x, y - 2], Image[x + 1, y - 2], Image[x - 2, y - 2], Image[x + 2, y - 2],
                                                 Image[x - 1, y - 1], Image[x, y - 1], Image[x + 1, y - 1], Image[x-2,y-1], Image[x+2,y-1],
                                                 Image[x - 1, y], Image[x, y], Image[x + 1, y], Image[x - 2, y], Image[x + 2, y],
                                                 Image[x - 1, y + 1], Image[x, y + 1], Image[x + 1, y + 1], Image[x - 2, y + 1], Image[x + 2, y + 1],
                                                 Image[x - 1, y + 2], Image[x, y + 2], Image[x + 1, y + 2], Image[x - 2, y + 2], Image[x + 2, y + 2]
                                                 }; // Pixels of Interest
 
-                    updatedImage[x, y] = newColorDilate(POI2); // If one of the pixels in POI is the foreground color, make this pixel the foreground color as well
+                    updatedImage[x, y] = newColorDilate(POI); // If one of the pixels in POI is the foreground color, make this pixel the foreground color as well
                 }
             }
 
@@ -479,8 +353,7 @@ namespace INFOIBV
         }
         #endregion
 
-
-        #region labeling 
+        #region Labeling 
         private int [,] labeling(int [,] Image)
         {
             Dictionary<int, List<int>> diffLabels = new Dictionary<int, List <int>> ();
@@ -661,7 +534,7 @@ namespace INFOIBV
         {
             List<int> labels = new List<int>();
 
-            //make a lost of 
+            //make a list of 
             for (int y = 0; y < Image.GetLength(1); y++)
             {
                 for (int x = 0; x < Image.GetLength(0); x++)
@@ -691,7 +564,7 @@ namespace INFOIBV
         }
         #endregion
 
-        #region area functions
+        #region Area Functions
         private int[,] removeAfterElongation(int[,] Image)
         {
             List<int> goodShapes = new List<int>();
@@ -763,7 +636,8 @@ namespace INFOIBV
 
         #endregion
 
-        #region switch between int [,] and color [,]
+        #region Switch between int [,] and Color [,]
+        /* These function were made, becuase doing calculations on int[,] has lower memory cost than doing calculations on Color[,] */
         private int[,] colorToInt(Color[,] Image)
         {
             int[,] updatedImage = new int[Image.GetLength(0), Image.GetLength(1)];
@@ -779,8 +653,6 @@ namespace INFOIBV
 
             return updatedImage;
         }
-
-
 
         private Color [,] intToColor(int [,] Image)
         {
