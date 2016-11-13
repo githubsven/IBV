@@ -104,6 +104,7 @@ namespace INFOIBV
 
             Image2 = labeling(Image2);
             Image2 = removeBorderShapes(Image2);
+            Image2 = removeAfterElongation(Image2);
             Image = colorLabeling(Image2);
 
             Image = Close(Image);
@@ -588,8 +589,11 @@ namespace INFOIBV
                 if (Image[z, y] > 0 && !borderShapes.Contains(Image[z, y]))
                     borderShapes.Add(Image[z, y]);
 
-                if (y == Image.GetLength(1) - 4)
+                if (y == Image.GetLength(1) - 4 && z != Image.GetLength(0) - 4)
+                {
                     z = Image.GetLength(0) - 4;
+                    y = 2;
+                }
             }
 
             int t = 3;
@@ -600,8 +604,11 @@ namespace INFOIBV
                 if (Image[x, t] > 0 && !borderShapes.Contains(Image[z, t]))
                         borderShapes.Add(Image[x,t]);
 
-                    if (t == Image.GetLength(0) - 4)
+                if (x == Image.GetLength(0) - 4 && t != Image.GetLength(1) - 4)
+                {
                     t = Image.GetLength(1) - 4;
+                    x = 2;
+                }
             }
 
             return borderShapes;
@@ -682,6 +689,78 @@ namespace INFOIBV
 
             return greyValues;
         }
+        #endregion
+
+        #region area functions
+        private int[,] removeAfterElongation(int[,] Image)
+        {
+            List<int> goodShapes = new List<int>();
+            List<int> badShapes = new List<int>();
+
+            for (int y = 0; y < Image.GetLength(1); y++)
+            {
+                for (int x = 0; x < Image.GetLength(0); x++)
+                {
+                    if (Image[x, y] > 0)
+                    {
+                        //shape is already tested and must be removed
+                        if (badShapes.Contains(Image[x, y]))
+                            Image[x, y] = 0;
+                        //shape is not yet tested
+                        else if (!goodShapes.Contains(Image[x, y]))
+                        {
+                            //shape is good
+                            if (calculateElongation(Image, Image[x, y]))
+                                goodShapes.Add(Image[x, y]);
+                            //shape is bad
+                            else
+                            {
+                                badShapes.Add(Image[x, y]);
+                                Image[x, y] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return Image;
+        }
+
+        //returns true if the shape passes, false if it is to be removed
+        private bool calculateElongation(int [,] Image, int label)
+        {
+            double xMax = 0, yMax = 0, xMin = 512, yMin = 512;
+
+            // find min and max values for x and y
+            for (int y = 0; y < Image.GetLength(1); y++)
+            {
+                for (int x = 0; x < Image.GetLength(0); x++)
+                {
+                    if (Image[x, y] == label)
+                    {
+                        if (x > xMax)
+                            xMax = x;
+                        if (x < xMin)
+                            xMin = x;
+                        if (y > yMax)
+                            yMax = y;
+                        if (y < yMin)
+                            yMin = y;
+                    }
+                }
+            }
+
+            double xLength = xMax - xMin;
+            double yLength = yMax - yMin;
+
+            double elongation = xLength/ yLength;
+
+            if(elongation > 0.85 || elongation < 0.55)
+                return false;
+
+            return true;
+        }
+
         #endregion
 
         #region switch between int [,] and color [,]
