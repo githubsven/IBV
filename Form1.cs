@@ -64,7 +64,7 @@ namespace INFOIBV
             //==========================================================================================
             // TODO: include here your own code
 
-            /*// == combined from Sven and Maaike ===
+            /*// == combined from Sven and Maaike oud ===
             Color[,] secondImage = new Color[Image.GetLength(0),Image.GetLength(1)];
             secondImage = Image;
             secondImage = Threshold(secondImage);
@@ -85,6 +85,7 @@ namespace INFOIBV
             Image = colorLabeling(Image2);
             */
 
+            //maaike's volgorde 13-11 2:44 uur
             Image = MakeGrey(Image);
             Color[,] secondImage = new Color[Image.GetLength(0), Image.GetLength(1)];
             secondImage = Image;
@@ -106,7 +107,7 @@ namespace INFOIBV
             Image = colorLabeling(Image2);
 
             Image = Close(Image);
-
+            //===== mogelijk nog een close met grotere kernel + elongation/rectangularity
 
 
             /*Sven Techniek */
