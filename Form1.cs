@@ -97,11 +97,15 @@ namespace INFOIBV
             Image = Close(Dilate(Close((Erode(Image)))));
 
             
+
             int[,] Image2 = new int[Image.GetLength(0), Image.GetLength(1)];
             Image2 = colorToInt(Image);
 
             Image2 = labeling(Image2);
+            Image2 = removeBorderShapes(Image2);
             Image = colorLabeling(Image2);
+
+            Image = Close(Image);
 
 
 
@@ -301,7 +305,7 @@ namespace INFOIBV
             {
                 //checks if its a top and if it is in the range of the array
                 if (freqs[i - 1] < freqs[i] && (i + 1) < 256 && freqs[i + 1] < freqs[i] && 
-                    freqs[i - 2] < freqs[i - 1] && freqs[i + 2] < freqs[i + 1])
+                    freqs[i - 2] < freqs[i-1] && freqs[i + 2] < freqs[i+1])
                 {
                     peaks.Add(new Tuple<int, int>(i, freqs[i]));
                     i += 35;        //To skip peaks too close to eachother
@@ -570,6 +574,56 @@ namespace INFOIBV
             return newLabel;
         }
 
+        //makes a list of all shapes that intersect with the border
+        private List<int> findBorderShapes(int [,] Image)
+        {
+            List<int> borderShapes = new List<int>();
+
+            int z = 3;
+
+            //check which shapes intersect with the vertical borders and with how much pixels
+            for (int y = 3; y < Image.GetLength(1) - 3; y++)
+            {
+                if (Image[z, y] > 0 && !borderShapes.Contains(Image[z, y]))
+                    borderShapes.Add(Image[z, y]);
+
+                if (y == Image.GetLength(1) - 4)
+                    z = Image.GetLength(0) - 4;
+            }
+
+            int t = 3;
+
+            //check which shapes intersect with the horizontal borders and with how much pixels
+            for (int x = 3; x < Image.GetLength(0) - 3; x++)
+            {
+                if (Image[x, t] > 0 && !borderShapes.Contains(Image[z, t]))
+                        borderShapes.Add(Image[x,t]);
+
+                    if (t == Image.GetLength(0) - 4)
+                    t = Image.GetLength(1) - 4;
+            }
+
+            return borderShapes;
+        }
+
+        //removes the shapes that intersect with the borders
+        private int [,] removeBorderShapes(int [,] Image)
+        {
+            List<int> removeShapes = findBorderShapes(Image);
+
+            for (int y = 0; y < Image.GetLength(1); y++)
+            {
+                for (int x = 0; x < Image.GetLength(0); x++)
+                {
+                    if (removeShapes.Contains(Image[x,y]))
+                        Image[x,y] = 0;                  
+                }
+            }
+
+            return Image;
+        }
+
+
         //give all shapes in the image a different grey color
         private Color[,] colorLabeling(int [,] Image)
         {
@@ -610,8 +664,10 @@ namespace INFOIBV
                 }
             }
 
+            int grey = 0;
             //determine steps for the different grey values (the shapes colors start from 55 to make sure they stand out from the background)
-            int grey = 200/labels.Count;
+            if (labels.Count > 0)
+                grey = 200/labels.Count;
 
             //fill the dictionary with the value combined with the right grey color
             Dictionary<int, int> greyValues = new Dictionary<int, int>();
